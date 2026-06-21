@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") 
+
+}
+
+model Supplier {
+  id          Int                  @id @default(autoincrement())
+  name        String               @unique
+
+  kpiRecords  SupplierKpi[]
+  evaluations SupplierEvaluation[]
+  audits      SupplierAudit[]
+  releases    SupplierRelease[]
+}
+
+model SupplierKpi {
+  id          Int          @id @default(autoincrement())
+  supplierId  Int
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  importId    Int
+  excelImport ExcelImport  @relation(fields: [importId], references: [id])
+
+  month       Int
+  year        Int
+  ppm         Float
+  complaints  Int
+  ipb         Float
+
+  @@unique([supplierId, month, year])
+  @@index([supplierId])
+  @@index([month, year])
+}
+
+model SupplierEvaluation {
+  id          Int          @id @default(autoincrement())
+  supplierId  Int
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  importId    Int
+  excelImport ExcelImport  @relation(fields: [importId], references: [id])
+
+  mqScore     Float
+  abcRating   ABCRating
+
+  @@index([supplierId])
+}
+
+model SupplierAudit {
+  id                  Int           @id @default(autoincrement())
+  supplierId          Int
+  supplier            Supplier      @relation(fields: [supplierId], references: [id])
+  importId            Int
+  excelImport         ExcelImport   @relation(fields: [importId], references: [id])
+
+  auditNumber         String        @unique
+  startDate           DateTime
+  auditResultPercent  Float
+  auditClassification AuditClass
+  auditScore          Float
+
+  @@index([supplierId])
+  @@index([startDate])
+}
+
+model SupplierRelease {
+  id              Int           @id @default(autoincrement())
+  supplierId      Int
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  importId        Int
+  excelImport     ExcelImport   @relation(fields: [importId], references: [id])
+
+  releaseStatus   ReleaseStatus
+
+  @@index([supplierId])
+}
+
+model ExcelImport {
+  id           Int            @id @default(autoincrement())
+  fileName     String
+  fileType     ImportFileType
+  uploadedAt   DateTime       @default(now())
+  rowsInserted Int            @default(0)
+
+  kpiRecords   SupplierKpi[]
+  evaluations  SupplierEvaluation[]
+  audits       SupplierAudit[]
+  releases     SupplierRelease[]
+}
+
+enum ABCRating {
+  A
+  B
+  C
+}
+
+enum AuditClass {
+  A
+  B
+  C
+  GREEN
+  YELLOW
+  RED
+}
+
+enum ReleaseStatus {
+  RELEASED
+  RELEASED_MDG
+  BLOCKED
+  CONDITIONAL
+}
+
+enum ImportFileType {
+  SUPPLIER_KPI
+  SUPPLIER_EVALUATION
+  SUPPLIER_AUDIT
+  SUPPLIER_RELEASE
+}
